@@ -622,6 +622,7 @@ function gcSessionStore(claudeDir, opts) {
 
   try {
     const dir = sessionsDir(claudeDir);
+    const realDir = path.resolve(fs.realpathSync(dir));
     const entries = fs.readdirSync(dir);
     const cutoff = Date.now() - maxAgeMs;
     let deleted = 0;
@@ -630,8 +631,19 @@ function gcSessionStore(claudeDir, opts) {
       const p = path.join(dir, name);
       try {
         const st = fs.lstatSync(p);
-        // Refuse symlinks rather than following them into someone else's file.
+        // Refuse symlinks and junctions rather than following them into someone
+        // else's file or across the session-dir boundary.
         if (st.isSymbolicLink() || !st.isFile()) continue;
+        let resolved;
+        try {
+          resolved = path.resolve(fs.realpathSync(p));
+        } catch (e) {
+          continue;
+        }
+        const insideSessionsDir = resolved === path.resolve(p)
+          || resolved === realDir
+          || resolved.startsWith(realDir + path.sep);
+        if (!insideSessionsDir) continue;
         if (st.mtimeMs < cutoff) { fs.unlinkSync(p); deleted++; }
       } catch (e) { /* vanished or unreadable — skip */ }
     }

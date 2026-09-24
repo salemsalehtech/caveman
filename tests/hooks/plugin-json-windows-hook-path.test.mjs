@@ -27,6 +27,14 @@ function hookCommand(hookName) {
 // only Windows produces. A bash-only harness cannot see that failure, which is
 // exactly how the herestring this replaced got here.
 const SHELLS = ['sh', 'bash'];
+const AVAILABLE_SHELLS = SHELLS.filter((shell) => {
+  try {
+    const r = spawnSync(shell, ['--version'], { stdio: 'ignore' });
+    return !r.error && r.status === 0;
+  } catch (e) {
+    return false;
+  }
+});
 
 // Runs a hook's shell command with a fake `node` on PATH that just echoes
 // the path argument it was given, so we can see exactly what path the real
@@ -48,7 +56,7 @@ function resolvedNodeArg(shell, command, claudePluginRoot) {
 }
 
 for (const hookName of ['SessionStart', 'UserPromptSubmit']) {
-  for (const shell of SHELLS) {
+  for (const shell of AVAILABLE_SHELLS) {
     test(`${hookName} hook converts an MSYS-style CLAUDE_PLUGIN_ROOT to a Windows drive path under ${shell}`, () => {
       const command = hookCommand(hookName);
       const arg = resolvedNodeArg(shell, command, '/c/Users/testuser/.claude/plugins/marketplaces/caveman');

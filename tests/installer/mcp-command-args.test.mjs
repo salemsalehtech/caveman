@@ -48,8 +48,20 @@ for (const form of ['quoted', 'json']) {
   });
 }
 
-for (const shell of ['powershell.exe', 'pwsh.exe']) {
-  test(`${shell} preserves quoted MCP paths through the actual Windows argument boundary`, { skip: process.platform !== 'win32' }, (t) => {
+const availableShells = ['powershell.exe', 'pwsh.exe'].filter((shell) => {
+  try {
+    const result = spawnSync(shell, ['-NoProfile', '-NonInteractive', '-Command', '$PSVersionTable.PSVersion.ToString()'], {
+      encoding: 'utf8',
+      stdio: 'pipe',
+    });
+    return !result.error && result.status === 0;
+  } catch (_) {
+    return false;
+  }
+});
+
+for (const shell of availableShells) {
+  test(`${shell} preserves quoted MCP paths through the actual Windows argument boundary`, (t) => {
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'caveman powershell argv '));
     t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
     const psQuote = (value) => `'${value.replace(/'/g, "''")}'`;

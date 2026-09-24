@@ -28,7 +28,16 @@ test('Windows hook commands are bash-safe (Git Bash is the default hook shell)',
 // literal above — bash is the parser Git Bash uses, so a shape that survives
 // `bash -n` here survives the hook runner there. Spaces and an apostrophe in
 // the paths are the cases that actually broke.
-test('Windows hook command parses under bash and preserves both arguments', () => {
+const bashAvailable = (() => {
+  try {
+    const r = spawnSync('bash', ['--version'], { stdio: 'ignore' });
+    return !r.error && r.status === 0;
+  } catch (e) {
+    return false;
+  }
+})();
+
+test('Windows hook command parses under bash and preserves both arguments', { skip: !bashAvailable && 'bash not found on PATH' }, () => {
   const command = hookCommand(
     "C:\\Program Files\\nodejs\\node.exe",
     ["C:\\Users\\O'Brien\\.claude\\hooks\\caveman-activate.js"],

@@ -17,18 +17,27 @@ function parseCommandArgs(value) {
     let quote = null;
     let token = '';
     let started = false;
-    for (const char of source) {
+    for (let i = 0; i < source.length; i++) {
+      const char = source[i];
       if (quote) {
-        if (char === quote) quote = null;
-        else token += char;
+        if (quote === "'" && char === "'" && source[i + 1] === "'") {
+          token += "'";
+          i += 1;
+        } else if (char === quote) {
+          quote = null;
+        } else {
+          token += char;
+        }
         started = true;
       } else if (char === '"' || char === "'") {
         quote = char;
         started = true;
       } else if (/\s/.test(char)) {
-        if (started) args.push(token);
-        token = '';
-        started = false;
+        if (started) {
+          args.push(token);
+          token = '';
+          started = false;
+        }
       } else {
         token += char;
         started = true;
